@@ -9,6 +9,13 @@
 #import <UIKit/UIKit.h>
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
+{
+    NSMutableArray *dataArray;
+    UIBackgroundTaskIdentifier backgroundTaskIdentifier;
+    id notiObserver;
+
+}
+
 
 @property (strong, nonatomic) UIWindow *window;
 

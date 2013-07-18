@@ -8,6 +8,8 @@
 
 #import "AppDelegate.h"
 
+#define DOWNLOAD_DATA_DONE @"DOWNLOAD_DATA_DONE"
+
 @implementation AppDelegate
 
 @synthesize managedObjectContext = _managedObjectContext;
@@ -20,6 +22,15 @@
     // Override point for customization after application launch.
     self.window.backgroundColor = [UIColor whiteColor];
     [self.window makeKeyAndVisible];
+    
+    dataArray = [[NSMutableArray alloc] init];
+    int i;
+    for(i=0; i<100; i++)
+    {
+        [dataArray addObject:@"1"];
+        
+    }
+
     return YES;
 }
 
@@ -33,11 +44,43 @@
 {
     // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later. 
     // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+    
+    backgroundTaskIdentifier =
+    [application beginBackgroundTaskWithExpirationHandler:^(void) {
+        [self endBackgroundTask];
+    }];
+    
+    
+    notiObserver = [[NSNotificationCenter defaultCenter] addObserverForName:DOWNLOAD_DATA_DONE object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
+        [self downloadData];
+    }];
+    [self downloadData];
+
 }
+
+- (void) endBackgroundTask{
+    
+    dispatch_queue_t mainQueue = dispatch_get_main_queue();
+    dispatch_async(mainQueue, ^(void) {
+        [[UIApplication sharedApplication]
+         endBackgroundTask:backgroundTaskIdentifier];
+        backgroundTaskIdentifier = UIBackgroundTaskInvalid;
+        [[NSNotificationCenter defaultCenter]  removeObserver:notiObserver];
+        notiObserver = nil;
+        NSLog(@"endBackgroundTask");
+
+    });
+    
+}
+
 
 - (void)applicationWillEnterForeground:(UIApplication *)application
 {
     // Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
+    if (backgroundTaskIdentifier != UIBackgroundTaskInvalid){
+        [self endBackgroundTask];
+    }
+
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application
@@ -64,6 +107,38 @@
         } 
     }
 }
+
+-(void)downloadData
+{
+   
+    
+    if(dataArray.count)
+    {
+        NSURL *url = [NSURL URLWithString:@"http://passionbean.files.wordpress.com/2012/02/screen-shot-2012-02-15-at-e4b88be58d882-51-30.png"];
+        NSURLRequest *req = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:60];
+        [NSURLConnection sendAsynchronousRequest:req queue:[NSOperationQueue mainQueue] completionHandler:^(NSURLResponse *res, NSData *data, NSError *err) {
+            
+            NSLog(@"count %d err %@", dataArray.count, err);
+
+            if(err == nil)
+            {
+                [dataArray removeObjectAtIndex:0];
+
+            }
+            [[NSNotificationCenter defaultCenter] postNotificationName:DOWNLOAD_DATA_DONE object:nil];
+
+        }];
+        
+    }
+    else
+    {
+        [self endBackgroundTask];
+
+    }
+    
+}
+
+
 
 #pragma mark - Core Data stack
 
